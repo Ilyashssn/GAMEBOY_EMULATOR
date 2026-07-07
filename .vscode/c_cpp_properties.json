@@ -1,0 +1,33 @@
+{
+  "configurations": [
+    {
+      "name": "MinGW",
+      "compilerPath": "g++",
+      "compilerArgs": [
+        "-std=c++17"
+      ],
+      "intelliSenseMode": "windows-gcc-x64",
+      "cppStandard": "c++17",
+      "includePath": [
+        "${workspaceFolder}/**",
+        "C:/Program Files/CodeBlocks/MinGW/include",
+        "C:/Program Files/CodeBlocks/MinGW/include/c++/14.2.0",
+        "C:/Program Files/CodeBlocks/MinGW/include/c++/14.2.0/x86_64-w64-mingw32",
+        "C:/Program Files/CodeBlocks/MinGW/lib/gcc/x86_64-w64-mingw32/14.2.0/include",
+        "C:/Program Files/CodeBlocks/MinGW/x86_64-w64-mingw32/include"
+      ],
+      "browse": {
+        "path": [
+          "${workspaceFolder}/**",
+          "C:/Program Files/CodeBlocks/MinGW/include",
+          "C:/Program Files/CodeBlocks/MinGW/include/c++/14.2.0",
+          "C:/Program Files/CodeBlocks/MinGW/include/c++/14.2.0/x86_64-w64-mingw32",
+          "C:/Program Files/CodeBlocks/MinGW/lib/gcc/x86_64-w64-mingw32/14.2.0/include",
+          "C:/Program Files/CodeBlocks/MinGW/x86_64-w64-mingw32/include"
+        ],
+        "limitSymbolsToIncludedHeaders": true
+      }
+    }
+  ],
+  "version": 4
+}
