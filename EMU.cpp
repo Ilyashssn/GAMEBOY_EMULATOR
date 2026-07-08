@@ -67,6 +67,9 @@ public:
     void set_DE(uint16_t val) { D = val >> 8; E = val & 0xFF; }
     void set_HL(uint16_t val) { H = val >> 8; L = val & 0xFF; }
     void set_AF(uint16_t val) { A = val >> 8; F = val & 0xF0; }
+    void set_flags(bool z, bool n,bool h,bool c){
+      F= (z<<7)|(n<<6)|(h<<5)|(c<<4);
+    }
     uint16_t PC,SP;
 };
 
@@ -76,6 +79,108 @@ private:
      MMU& Mem;
      uint64_t clock;
      uint8_t opcode;
+     void adding(uint8_t v){
+          int res=R.A+v;
+          bool z=((res & 0xFF) == 0);
+          bool n=false;
+          bool h=(((R.A & 0x0F) + (v & 0x0F)) > 0x0F);
+          bool c=(res > 0xFF);
+          R.set_flags(z,n,h,c);
+          R.A=(uint8_t)(res & 0xFF);
+     }
+     void adcing(uint8_t v){
+          uint8_t c_in = (R.F >> 4) & 0x01;
+          int res = R.A + v + c_in;
+          
+          bool z = ((res & 0xFF) == 0);
+          bool n = false;
+          // On inclut c_in dans le calcul du débordement du nibble inférieur
+          bool h = (((R.A & 0x0F) + (v & 0x0F) + c_in) > 0x0F);
+          bool c = (res > 0xFF);
+          
+          R.set_flags(z, n, h, c);
+          R.A = (uint8_t)(res & 0xFF);
+     }
+
+     void subing(uint8_t v){
+          bool z = (R.A == v); // Si A == v, le résultat sera forcément 0
+          bool n = true;
+          bool h = ((R.A & 0x0F) < (v & 0x0F));
+          bool c = (R.A < v);
+          
+          R.set_flags(z, n, h, c);
+          R.A -= v;
+     }
+
+
+     void sbcing(uint8_t v){
+          uint8_t c_in = (R.F >> 4) & 0x01;
+          int res = R.A - v - c_in;
+          
+          bool z = ((res & 0xFF) == 0);
+          bool n = true;
+          bool h = ((R.A & 0x0F) < (v & 0x0F) + c_in);
+          bool c = (R.A < v + c_in);
+          
+          R.set_flags(z, n, h, c);
+          R.A = (uint8_t)(res & 0xFF);
+     }
+
+     void anding(uint8_t v){
+          R.A &= v;
+          bool z = (R.A == 0);
+          R.set_flags(z, false, true, false);
+     }
+
+     void xoring(uint8_t v){
+          R.A ^= v;
+          bool z = (R.A == 0);
+          R.set_flags(z, false, false, false);
+     }
+
+     void oring(uint8_t v){
+          R.A |= v;
+          bool z = (R.A == 0);
+          R.set_flags(z, false, false, false);
+     }
+
+     void cp(uint8_t v){
+          bool z = (R.A == v);
+          bool n = true;
+          bool h = ((R.A & 0x0F) < (v & 0x0F));
+          bool c = (R.A < v);
+          
+          R.set_flags(z, n, h, c);
+     }
+
+     uint8_t inc8(uint8_t v){
+      bool c=(R.F>>4)&0x01 ;
+        bool h = ((v & 0x0F) == 0x0F);
+      v++;
+      bool z=(v==0);
+      bool n=false;
+      R.set_flags(z,n,h,c);
+      return v;
+     }
+
+     uint8_t dec8(uint8_t v){
+      bool c=(R.F>>4)&0x01 ;
+      bool h = ((v & 0x0F) == 0x00);
+      v--;
+      bool z=(v==0);
+      bool n=true;
+      R.set_flags(z,n,h,c);
+      return v;
+     }
+
+     uint16_t fetch16(){
+      uint8_t low = Mem.read(R.PC++);
+      uint8_t high = Mem.read(R.PC++);
+      return (high << 8) | low;
+     }
+
+     uint16_t target_addr;
+     uint8_t offset;
 
 public :
     CPU(MMU& shared_mem) : Mem(shared_mem), clock(0), opcode(0) {
@@ -369,7 +474,359 @@ public :
                R.set_HL(R.get_HL()-1);
                clock+=8;
                break;
-
+            case 0x87:
+               adding(R.A);clock+=4;
+               break;
+            case 0x80:
+               adding(R.B);clock+=4;
+               break;
+            case 0x81:
+               adding(R.C);clock+=4;
+               break;
+            case 0x82:
+               adding(R.D);clock+=4;
+               break;
+            case 0x83:
+               adding(R.E);clock+=4;
+               break;
+            case 0x84:
+               adding(R.H);clock+=4;
+               break;
+            case 0x85:
+               adding(R.L);clock+=4;
+               break;
+            case 0x86:
+               adding(Mem.read(R.get_HL()));clock+=8;
+               break;
+            case 0xC6:
+               adding(Mem.read(R.PC++));clock+=8;
+               break;
+            case 0x88:
+               adcing(R.B);clock+=4;
+               break;
+            case 0x89:
+               adcing(R.C);clock+=4;
+               break;
+            case 0x8A:
+               adcing(R.D);clock+=4;
+               break;
+            case 0x8B:
+               adcing(R.E);clock+=4;
+               break;
+            case 0x8C:
+               adcing(R.H);clock+=4;
+               break;
+            case 0x8D:
+               adcing(R.L);clock+=4;
+               break;
+            case 0x8E:
+               adcing(Mem.read(R.get_HL()));clock+=8;
+               break;
+            case 0x8F:
+               adcing(R.A);clock+=4;
+               break;
+            case 0xCE:
+               adcing(Mem.read(R.PC++));clock+=8;
+               break;
+            case 0x90:
+               subing(R.B);clock+=4;
+               break;
+            case 0x91:
+               subing(R.C);clock+=4;
+               break;
+            case 0x92:
+               subing(R.D);clock+=4;
+               break;
+            case 0x93:
+               subing(R.E);clock+=4;
+               break;
+            case 0x94:
+               subing(R.H);clock+=4;
+               break;
+            case 0x95:
+               subing(R.L);clock+=4;
+               break;
+            case 0x96:
+               subing(Mem.read(R.get_HL()));clock+=8;
+               break;
+            case 0x97:
+               subing(R.A);clock+=4;
+               break;
+            case 0xD6:
+               subing(Mem.read(R.PC++));clock+=8;
+               break;
+            case 0x98:
+               sbcing(R.B);clock+=4;
+               break;
+            case 0x99:
+               sbcing(R.C);clock+=4;
+               break;
+            case 0x9A:
+               sbcing(R.D);clock+=4;
+               break;
+            case 0x9B:
+               sbcing(R.E);clock+=4;
+               break;
+            case 0x9C:
+               sbcing(R.H);clock+=4;
+               break;
+            case 0x9D:
+               sbcing(R.L);clock+=4;
+               break;
+            case 0x9E:
+               sbcing(Mem.read(R.get_HL()));clock+=8;
+               break;
+            case 0x9F:
+               sbcing(R.A);clock+=4;
+               break;
+            case 0xDE:
+               sbcing(Mem.read(R.PC++));clock+=8;
+               break;
+            case 0xA0:
+               anding(R.B);clock+=4;
+               break;
+            case 0xA1:
+               anding(R.C);clock+=4;
+               break;
+            case 0xA2:
+               anding(R.D);clock+=4;
+               break;
+            case 0xA3:
+               anding(R.E);clock+=4;
+               break;
+            case 0xA4:
+               anding(R.H);clock+=4;
+               break;
+            case 0xA5:
+               anding(R.L);clock+=4;
+               break;
+            case 0xA6:
+               anding(Mem.read(R.get_HL()));clock+=8;
+               break;
+            case 0xA7:
+               anding(R.A);clock+=4;
+               break;
+            case 0xE6:
+               anding(Mem.read(R.PC++));clock+=8;
+               break;
+            case 0xA8:
+               xoring(R.B);clock+=4;
+               break;
+            case 0xA9:
+               xoring(R.C);clock+=4;
+               break;
+            case 0xAA:
+               xoring(R.D);clock+=4;
+               break;
+            case 0xAB:
+               xoring(R.E);clock+=4;
+               break;
+            case 0xAC:
+               xoring(R.H);clock+=4;
+               break;
+            case 0xAD:
+               xoring(R.L);clock+=4;
+               break;
+            case 0xAE:
+               xoring(Mem.read(R.get_HL()));clock+=8;
+               break;
+            case 0xAF:
+               xoring(R.A);clock+=4;
+               break;
+            case 0xEE:
+               xoring(Mem.read(R.PC++));clock+=8;
+               break;
+            case 0xB0:
+               oring(R.B);clock+=4;
+               break;
+            case 0xB1:
+               oring(R.C);clock+=4;
+               break;
+            case 0xB2:
+               oring(R.D);clock+=4;
+               break;
+            case 0xB3:
+               oring(R.E);clock+=4;
+               break;
+            case 0xB4:
+               oring(R.H);clock+=4;
+               break;
+            case 0xB5:
+               oring(R.L);clock+=4;
+               break;
+            case 0xB6:
+               oring(Mem.read(R.get_HL()));clock+=8;
+               break;
+            case 0xB7:
+               oring(R.A);clock+=4;
+               break;
+            case 0xF6:
+               oring(Mem.read(R.PC++));clock+=8;
+               break;
+            case 0xB8:
+               cp(R.B);clock+=4;
+               break;
+            case 0xB9:
+               cp(R.C);clock+=4;
+               break;
+            case 0xBA:
+               cp(R.D);clock+=4;
+               break;
+            case 0xBB:
+               cp(R.E);clock+=4;
+               break;
+            case 0xBC:
+               cp(R.H);clock+=4;
+               break;
+            case 0xBD:
+               cp(R.L);clock+=4;
+               break;
+            case 0xBE:
+               cp(Mem.read(R.get_HL()));clock+=8;
+               break;
+            case 0xBF:
+               cp(R.A);clock+=4;
+               break;
+            case 0xFE:
+               cp(Mem.read(R.PC++));clock+=8;
+               break;
+            case 0x04:
+               R.B = inc8(R.B); clock += 4;
+               break;
+            case 0x0C:
+               R.C = inc8(R.C); clock += 4;
+               break;
+            case 0x14:
+               R.D = inc8(R.D); clock += 4;
+               break;
+            case 0x1C:
+               R.E = inc8(R.E); clock += 4;
+               break;
+            case 0x24:
+               R.H = inc8(R.H); clock += 4;
+               break;
+            case 0x2C:
+               R.L = inc8(R.L); clock += 4;
+               break;
+            case 0x34:
+               { uint8_t val = Mem.read(R.get_HL()); Mem.write(R.get_HL(), inc8(val)); clock += 12; }
+               break;
+            case 0x3C:
+               R.A = inc8(R.A); clock += 4;
+               break;
+            case 0x05:
+               R.B = dec8(R.B); clock += 4;
+               break;
+            case 0x0D:
+               R.C = dec8(R.C); clock += 4;
+               break;
+            case 0x15:
+               R.D = dec8(R.D); clock += 4;
+               break;
+            case 0x1D:
+               R.E = dec8(R.E); clock += 4;
+               break;
+            case 0x25:
+               R.H = dec8(R.H); clock += 4;
+               break;
+            case 0x2D:
+               { R.L = dec8(R.L); clock += 4; }
+               break;
+            case 0x35:
+               { uint8_t val = Mem.read(R.get_HL()); Mem.write(R.get_HL(), dec8(val)); clock += 12; }
+               break;
+            case 0x3D:
+               R.A = dec8(R.A); clock += 4;
+               break;
+            case 0xC3:
+               R.PC=fetch16();clock+=16;
+               break;
+            case 0xC2:
+               target_addr = fetch16(); if (!((R.F >> 7) & 0x01)) { R.PC = target_addr; clock += 16; } else { clock += 12; }
+               break;
+            case 0xCA:
+               target_addr = fetch16(); if (((R.F >> 7) & 0x01)) { R.PC = target_addr; clock += 16; } else { clock += 12; }
+               break;
+            case 0xD2:
+               target_addr = fetch16(); if (!((R.F >> 4) & 0x01)) { R.PC = target_addr; clock += 16; } else { clock += 12; }
+               break;
+            case 0xDA:
+               target_addr = fetch16(); if (((R.F >> 4) & 0x01)) { R.PC = target_addr; clock += 16; } else { clock += 12; }
+               break;
+            case 0xE9:
+               R.PC = R.get_HL(); clock += 4;
+               break;
+            case 0x18:
+               offset = (int8_t)Mem.read(R.PC++); R.PC += offset; clock += 12;
+               break;
+            case 0x20:
+               offset = (int8_t)Mem.read(R.PC++); if (!((R.F >> 7) & 0x01)) { R.PC += offset; clock += 12; } else { clock += 8; }
+               break;
+            case 0x28:
+               offset = (int8_t)Mem.read(R.PC++); if (((R.F >> 7) & 0x01)) { R.PC += offset; clock += 12; } else { clock += 8; }
+               break;
+            case 0x30:
+               offset = (int8_t)Mem.read(R.PC++); if (!((R.F >> 4) & 0x01)) { R.PC += offset; clock += 12; } else { clock += 8; }
+               break;
+            case 0x38:
+               offset = (int8_t)Mem.read(R.PC++); if (((R.F >> 4) & 0x01)) { R.PC += offset; clock += 12; } else { clock += 8; }
+               break;
+            case 0xC5:
+               Mem.write(--R.SP,R.B);Mem.write(--R.SP,R.C);clock+=16;
+               break;
+            case 0xD5:
+               Mem.write(--R.SP, R.D); Mem.write(--R.SP, R.E); clock += 16;
+               break;
+            case 0xE5:
+               Mem.write(--R.SP, R.H); Mem.write(--R.SP, R.L); clock += 16;
+               break;
+            case 0xF5:
+               Mem.write(--R.SP, R.A); Mem.write(--R.SP, R.F); clock += 16;
+               break;
+            case 0xC1:
+               R.C = Mem.read(R.SP++); R.B = Mem.read(R.SP++); clock += 16;
+               break;
+            case 0xD1:
+               R.E = Mem.read(R.SP++); R.D = Mem.read(R.SP++); clock += 16;
+               break;
+            case 0xE1:
+               R.L = Mem.read(R.SP++); R.H = Mem.read(R.SP++); clock += 16;
+               break;
+            case 0xF1:
+               R.F = Mem.read(R.SP++) & 0xF0; R.A = Mem.read(R.SP++); clock += 16;
+               break;
+            case 0xCD:
+               target_addr = fetch16(); Mem.write(--R.SP, (R.PC >> 8) & 0xFF); Mem.write(--R.SP, R.PC & 0xFF); R.PC = target_addr; clock += 24;
+               break;
+            case 0xC4:
+               target_addr = fetch16(); if (!((R.F >> 7) & 0x01)) { Mem.write(--R.SP, (R.PC >> 8) & 0xFF); Mem.write(--R.SP, R.PC & 0xFF); R.PC = target_addr; clock += 24; } else { clock += 12; }
+               break;
+            case 0xCC:
+               target_addr = fetch16(); if (((R.F >> 7) & 0x01)) { Mem.write(--R.SP, (R.PC >> 8) & 0xFF); Mem.write(--R.SP, R.PC & 0xFF); R.PC = target_addr; clock += 24; } else { clock += 12; }
+               break;
+            case 0xD4:
+               target_addr = fetch16(); if (!((R.F >> 4) & 0x01)) { Mem.write(--R.SP, (R.PC >> 8) & 0xFF); Mem.write(--R.SP, R.PC & 0xFF); R.PC = target_addr; clock += 24; } else { clock += 12; }
+               break;
+            case 0xDC:
+               target_addr = fetch16(); if (((R.F >> 4) & 0x01)) { Mem.write(--R.SP, (R.PC >> 8) & 0xFF); Mem.write(--R.SP, R.PC & 0xFF); R.PC = target_addr; clock += 24; } else { clock += 12; }
+               break;
+            case 0xC9:
+               { uint8_t low = Mem.read(R.SP++); uint8_t high = Mem.read(R.SP++); R.PC = (high << 8) | low; clock += 16; }
+               break;
+            case 0xC0:
+               if (!((R.F >> 7) & 0x01)) { uint8_t low = Mem.read(R.SP++); uint8_t high = Mem.read(R.SP++); R.PC = (high << 8) | low; clock += 20; } else { clock += 8; }
+               break;
+            case 0xC8:
+               if (((R.F >> 7) & 0x01)) { uint8_t low = Mem.read(R.SP++); uint8_t high = Mem.read(R.SP++); R.PC = (high << 8) | low; clock += 20; } else { clock += 8; }
+               break;
+            case 0xD0:
+               if (!((R.F >> 4) & 0x01)) { uint8_t low = Mem.read(R.SP++); uint8_t high = Mem.read(R.SP++); R.PC = (high << 8) | low; clock += 20; } else { clock += 8; }
+               break;
+            case 0xD8:
+               if (((R.F >> 4) & 0x01)) { uint8_t low = Mem.read(R.SP++); uint8_t high = Mem.read(R.SP++); R.PC = (high << 8) | low; clock += 20; } else { clock += 8; }
+               break;
+              
+            
 
               
                
