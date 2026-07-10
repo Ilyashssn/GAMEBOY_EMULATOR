@@ -179,6 +179,21 @@ private:
       return (high << 8) | low;
      }
 
+     uint16_t add16(uint16_t hl, uint16_t rr){
+      bool h = ((hl & 0x0FFF) + (rr & 0x0FFF)) > 0x0FFF;
+      bool z=(R.F>>7) & 0x01;
+      bool n=false;
+      bool c=(hl+rr)>0xFFFF;
+      R.set_flags(z,n,h,c);
+      return hl+rr;
+     }
+
+     void bit_test(uint8_t b, uint8_t r){
+      bool z=!((r>>b)&0x01);
+      bool c=(R.F>>4)&0x01;
+      R.set_flags(z,false,true,c);
+     }
+
      uint16_t target_addr;
      uint8_t offset;
 
@@ -825,6 +840,122 @@ public :
             case 0xD8:
                if (((R.F >> 4) & 0x01)) { uint8_t low = Mem.read(R.SP++); uint8_t high = Mem.read(R.SP++); R.PC = (high << 8) | low; clock += 20; } else { clock += 8; }
                break;
+            case 0x09:
+               R.set_HL(add16(R.get_HL(), R.get_BC())); clock += 8;
+               break;
+            case 0x19:
+               R.set_HL(add16(R.get_HL(), R.get_DE())); clock += 8;
+               break;
+            case 0x29:
+               R.set_HL(add16(R.get_HL(), R.get_HL())); clock += 8;
+               break;
+            case 0x39:
+               R.set_HL(add16(R.get_HL(), R.SP)); clock += 8;
+               break;
+            case 0x03:
+               R.set_BC(R.get_BC() + 1); clock += 8;
+               break;
+            case 0x13:
+               R.set_DE(R.get_DE() + 1); clock += 8;
+               break;
+            case 0x23:
+               R.set_HL(R.get_HL() + 1); clock += 8;
+               break;
+            case 0x33:
+               R.SP++; clock += 8;
+               break;
+            case 0x0B:
+               R.set_BC(R.get_BC() - 1); clock += 8;
+               break;
+            case 0x1B:
+               R.set_DE(R.get_DE() - 1); clock += 8;
+               break;
+            case 0x2B:
+               R.set_HL(R.get_HL() - 1); clock += 8;
+               break;
+            case 0x3B:
+               R.SP--; clock += 8;
+               break;
+            case 0xE8:
+               { int8_t e = (int8_t)Mem.read(R.PC++); 
+                 R.set_flags(false, false, ((R.SP & 0x0F) + (e & 0x0F)) > 0x0F, ((R.SP & 0xFF) + (e & 0xFF)) > 0xFF); 
+                 R.SP += e; clock += 16; }
+               break;
+            case 0xF8:
+               { int8_t e = (int8_t)Mem.read(R.PC++); 
+                 R.set_flags(false, false, ((R.SP & 0x0F) + (e & 0x0F)) > 0x0F, ((R.SP & 0xFF) + (e & 0xFF)) > 0xFF); 
+                 R.set_HL(R.SP + e); clock += 12; }
+               break;
+            case 0xCB:{
+               uint8_t cb_opcode=Mem.read(R.PC++);
+               switch(cb_opcode){
+ case 0x40: bit_test(0, R.B); clock += 8; break;
+case 0x41: bit_test(0, R.C); clock += 8; break;
+case 0x42: bit_test(0, R.D); clock += 8; break;
+case 0x43: bit_test(0, R.E); clock += 8; break;
+case 0x44: bit_test(0, R.H); clock += 8; break;
+case 0x45: bit_test(0, R.L); clock += 8; break;
+case 0x46: bit_test(0, Mem.read(R.get_HL())); clock += 12; break;
+case 0x47: bit_test(0, R.A); clock += 8; break;
+case 0x48: bit_test(1, R.B); clock += 8; break;
+case 0x49: bit_test(1, R.C); clock += 8; break;
+case 0x4A: bit_test(1, R.D); clock += 8; break;
+case 0x4B: bit_test(1, R.E); clock += 8; break;
+case 0x4C: bit_test(1, R.H); clock += 8; break;
+case 0x4D: bit_test(1, R.L); clock += 8; break;
+case 0x4E: bit_test(1, Mem.read(R.get_HL())); clock += 12; break;
+case 0x4F: bit_test(1, R.A); clock += 8; break;
+case 0x50: bit_test(2, R.B); clock += 8; break;
+case 0x51: bit_test(2, R.C); clock += 8; break;
+case 0x52: bit_test(2, R.D); clock += 8; break;
+case 0x53: bit_test(2, R.E); clock += 8; break;
+case 0x54: bit_test(2, R.H); clock += 8; break;
+case 0x55: bit_test(2, R.L); clock += 8; break;
+case 0x56: bit_test(2, Mem.read(R.get_HL())); clock += 12; break;
+case 0x57: bit_test(2, R.A); clock += 8; break;
+case 0x58: bit_test(3, R.B); clock += 8; break;
+case 0x59: bit_test(3, R.C); clock += 8; break;
+case 0x5A: bit_test(3, R.D); clock += 8; break;
+case 0x5B: bit_test(3, R.E); clock += 8; break;
+case 0x5C: bit_test(3, R.H); clock += 8; break;
+case 0x5D: bit_test(3, R.L); clock += 8; break;
+case 0x5E: bit_test(3, Mem.read(R.get_HL())); clock += 12; break;
+case 0x5F: bit_test(3, R.A); clock += 8; break;
+case 0x60: bit_test(4, R.B); clock += 8; break;
+case 0x61: bit_test(4, R.C); clock += 8; break;
+case 0x62: bit_test(4, R.D); clock += 8; break;
+case 0x63: bit_test(4, R.E); clock += 8; break;
+case 0x64: bit_test(4, R.H); clock += 8; break;
+case 0x65: bit_test(4, R.L); clock += 8; break;
+case 0x66: bit_test(4, Mem.read(R.get_HL())); clock += 12; break;
+case 0x67: bit_test(4, R.A); clock += 8; break;
+case 0x68: bit_test(5, R.B); clock += 8; break;
+case 0x69: bit_test(5, R.C); clock += 8; break;
+case 0x6A: bit_test(5, R.D); clock += 8; break;
+case 0x6B: bit_test(5, R.E); clock += 8; break;
+case 0x6C: bit_test(5, R.H); clock += 8; break;
+case 0x6D: bit_test(5, R.L); clock += 8; break;
+case 0x6E: bit_test(5, Mem.read(R.get_HL())); clock += 12; break;
+case 0x6F: bit_test(5, R.A); clock += 8; break;
+case 0x70: bit_test(6, R.B); clock += 8; break;
+case 0x71: bit_test(6, R.C); clock += 8; break;
+case 0x72: bit_test(6, R.D); clock += 8; break;
+case 0x73: bit_test(6, R.E); clock += 8; break;
+case 0x74: bit_test(6, R.H); clock += 8; break;
+case 0x75: bit_test(6, R.L); clock += 8; break;
+case 0x76: bit_test(6, Mem.read(R.get_HL())); clock += 12; break;
+case 0x77: bit_test(6, R.A); clock += 8; break;
+case 0x78: bit_test(7, R.B); clock += 8; break;
+case 0x79: bit_test(7, R.C); clock += 8; break;
+case 0x7A: bit_test(7, R.D); clock += 8; break;
+case 0x7B: bit_test(7, R.E); clock += 8; break;
+case 0x7C: bit_test(7, R.H); clock += 8; break;
+case 0x7D: bit_test(7, R.L); clock += 8; break;
+case 0x7E: bit_test(7, Mem.read(R.get_HL())); clock += 12; break;
+case 0x7F: bit_test(7, R.A); clock += 8; break;
+               }
+            }
+            break;
               
             
 
