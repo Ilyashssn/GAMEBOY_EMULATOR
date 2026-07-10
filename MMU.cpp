@@ -45,8 +45,6 @@ void MMU::write(uint16_t address, uint8_t value) {
 bool MMU::load_rom(const std::string& filename) {
     std::ifstream file(filename, std::ios::binary);
     if (!file.is_open()) return false;
-    
-    // Lit le fichier et le met directement dans ton tableau rom
     file.read(reinterpret_cast<char*>(rom), 0x8000); 
     return true;
 }

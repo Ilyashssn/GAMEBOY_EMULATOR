@@ -1,7 +1,7 @@
 #pragma once
 #include "MMU.hpp"
 
-// Met ta classe Registers ici (juste au-dessus de CPU)
+
 class Registers {
 public:
     uint8_t A, B, C, D, E, F, H, L;
@@ -26,7 +26,7 @@ private:
     uint64_t clock;
     uint8_t opcode;
 
-    // Prototypes des fonctions ALU privées
+   
     void adding(uint8_t v);
     void adcing(uint8_t v);
     void subing(uint8_t v);
@@ -38,7 +38,7 @@ private:
     uint8_t inc8(uint8_t v);
     uint8_t dec8(uint8_t v);
     
-    // Utilitaires
+   
     uint16_t fetch16();
     uint16_t add16(uint16_t hl, uint16_t rr);
     void bit_test(uint8_t b, uint8_t r);
@@ -49,5 +49,5 @@ private:
 public:
     CPU(MMU& shared_mem);
     void reset();
-    void step(); // C'est ta fonction avec le gros switch
+    void step(); 
 };
