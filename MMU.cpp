@@ -1,6 +1,6 @@
 #include "MMU.hpp"
 #include <fstream>
-
+#include <iostream>
 
 MMU::MMU() {}
 
@@ -20,6 +20,9 @@ uint8_t MMU::read(uint16_t address) const {
     if (address >= 0xFE00 && address <= 0xFE9F) {
         return oam[address - 0xFE00];
     }
+    if (address >= 0xFF00 && address <= 0xFF7F) {
+        return io[address - 0xFF00];
+    }
     if (address >= 0xFF80 && address <= 0xFFFE) {
         return hram[address - 0xFF80];
     }
@@ -37,6 +40,13 @@ void MMU::write(uint16_t address, uint8_t value) {
         wram[address - 0xC000] = value;
     } else if (address >= 0xFE00 && address <= 0xFE9F) {
         oam[address - 0xFE00] = value;
+    } else if(address >= 0xFF00 && address <= 0xF7F){
+        io[address - 0xFF00]=value;
+        if(address==0xFF02 && value==0x81){
+            char character = static_cast<char>(io[0xFF01 - 0xFF00]);
+            std::cout << character << std::flush;
+            io[0xFF02-0xFF00]=0x00;
+        }
     } else if (address >= 0xFF80 && address <= 0xFFFE) {
         hram[address - 0xFF80] = value;
     }

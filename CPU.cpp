@@ -1,4 +1,6 @@
 #include "CPU.hpp"
+#include <iostream>
+#include <iomanip>
 
 CPU::CPU(MMU& shared_mem) : Mem(shared_mem), clock(0), opcode(0) {
     reset();
@@ -13,6 +15,7 @@ void CPU::reset() {
     R.SP = 0xFFFE;
     R.PC = 0x0100; 
     clock = 0;
+    running=true;
 }
 
 void CPU::adding(uint8_t v) {
@@ -123,6 +126,71 @@ void CPU::bit_test(uint8_t b, uint8_t r) {
     R.set_flags(z, false, true, c);
 }
 
+
+uint8_t CPU::rlc_op(uint8_t val) {
+    uint8_t c = val >> 7;
+    uint8_t res = (val << 1) | c;
+    R.set_flags(res == 0, false, false, c);
+    return res;
+}
+
+
+uint8_t CPU::rrc_op(uint8_t val) {
+    uint8_t c = val & 0x01;
+    uint8_t res = (val >> 1) | (c << 7);
+    R.set_flags(res == 0, false, false, c);
+    return res;
+}
+
+
+uint8_t CPU::rl_op(uint8_t val) {
+    uint8_t old_c = (R.F >> 4) & 0x01;
+    uint8_t new_c = val >> 7;
+    uint8_t res = (val << 1) | old_c;
+    R.set_flags(res == 0, false, false, new_c);
+    return res;
+}
+
+
+uint8_t CPU::rr_op(uint8_t val) {
+    uint8_t old_c = (R.F >> 4) & 0x01;
+    uint8_t new_c = val & 0x01;
+    uint8_t res = (val >> 1) | (old_c << 7);
+    R.set_flags(res == 0, false, false, new_c);
+    return res;
+}
+
+
+uint8_t CPU::sra_op(uint8_t val) {
+    uint8_t c = val & 0x01;
+    uint8_t res = (static_cast<int8_t>(val) >> 1);
+    R.set_flags(res == 0, false, false, c);
+    return res;
+}
+
+uint8_t CPU::sla_op(uint8_t val) {
+    uint8_t c = val >> 7;
+    uint8_t res = val << 1;
+    R.set_flags(res == 0, false, false, c);
+    return res;
+}
+
+uint8_t CPU::srl_op(uint8_t val) {
+    uint8_t c = val & 0x01;
+    uint8_t res = val >> 1;
+    R.set_flags(res == 0, false, false, c);
+    return res;
+}
+
+uint8_t CPU::swap_op(uint8_t val) {
+    uint8_t res = (val >> 4) | (val << 4);
+    R.set_flags(res == 0, false, false, false);
+    return res;
+}
+
+bool CPU::get_running(){
+   return running;
+}
 void CPU::step() {
     opcode = Mem.read(R.PC++);
     switch(opcode) {
@@ -931,9 +999,174 @@ case 0xBC: R.H &= ~(1 << 7); clock += 8; break;
 case 0xBD: R.L &= ~(1 << 7); clock += 8; break;
 case 0xBE: { uint8_t val = Mem.read(R.get_HL()); Mem.write(R.get_HL(), val & ~(1 << 7)); clock += 15; } break;
 case 0xBF: R.A &= ~(1 << 7); clock += 8; break;
+case 0xC0: R.B |= (1 << 0); clock += 8; break;
+case 0xC1: R.C |= (1 << 0); clock += 8; break;
+case 0xC2: R.D |= (1 << 0); clock += 8; break;
+case 0xC3: R.E |= (1 << 0); clock += 8; break;
+case 0xC4: R.H |= (1 << 0); clock += 8; break;
+case 0xC5: R.L |= (1 << 0); clock += 8; break;
+case 0xC6: { uint8_t val = Mem.read(R.get_HL()); Mem.write(R.get_HL(), val | (1 << 0)); clock += 15; } break;
+case 0xC7: R.A |= (1 << 0); clock += 8; break;
+case 0xC8: R.B |= (1 << 1); clock += 8; break;
+case 0xC9: R.C |= (1 << 1); clock += 8; break;
+case 0xCA: R.D |= (1 << 1); clock += 8; break;
+case 0xCB: R.E |= (1 << 1); clock += 8; break;
+case 0xCC: R.H |= (1 << 1); clock += 8; break;
+case 0xCD: R.L |= (1 << 1); clock += 8; break;
+case 0xCE: { uint8_t val = Mem.read(R.get_HL()); Mem.write(R.get_HL(), val | (1 << 1)); clock += 15; } break;
+case 0xCF: R.A |= (1 << 1); clock += 8; break;
+case 0xD0: R.B |= (1 << 2); clock += 8; break;
+case 0xD1: R.C |= (1 << 2); clock += 8; break;
+case 0xD2: R.D |= (1 << 2); clock += 8; break;
+case 0xD3: R.E |= (1 << 2); clock += 8; break;
+case 0xD4: R.H |= (1 << 2); clock += 8; break;
+case 0xD5: R.L |= (1 << 2); clock += 8; break;
+case 0xD6: { uint8_t val = Mem.read(R.get_HL()); Mem.write(R.get_HL(), val | (1 << 2)); clock += 15; } break;
+case 0xD7: R.A |= (1 << 2); clock += 8; break;
+case 0xD8: R.B |= (1 << 3); clock += 8; break;
+case 0xD9: R.C |= (1 << 3); clock += 8; break;
+case 0xDA: R.D |= (1 << 3); clock += 8; break;
+case 0xDB: R.E |= (1 << 3); clock += 8; break;
+case 0xDC: R.H |= (1 << 3); clock += 8; break;
+case 0xDD: R.L |= (1 << 3); clock += 8; break;
+case 0xDE: { uint8_t val = Mem.read(R.get_HL()); Mem.write(R.get_HL(), val | (1 << 3)); clock += 15; } break;
+case 0xDF: R.A |= (1 << 3); clock += 8; break;
+case 0xE0: R.B |= (1 << 4); clock += 8; break;
+case 0xE1: R.C |= (1 << 4); clock += 8; break;
+case 0xE2: R.D |= (1 << 4); clock += 8; break;
+case 0xE3: R.E |= (1 << 4); clock += 8; break;
+case 0xE4: R.H |= (1 << 4); clock += 8; break;
+case 0xE5: R.L |= (1 << 4); clock += 8; break;
+case 0xE6: { uint8_t val = Mem.read(R.get_HL()); Mem.write(R.get_HL(), val | (1 << 4)); clock += 15; } break;
+case 0xE7: R.A |= (1 << 4); clock += 8; break;
+case 0xE8: R.B |= (1 << 5); clock += 8; break;
+case 0xE9: R.C |= (1 << 5); clock += 8; break;
+case 0xEA: R.D |= (1 << 5); clock += 8; break;
+case 0xEB: R.E |= (1 << 5); clock += 8; break;
+case 0xEC: R.H |= (1 << 5); clock += 8; break;
+case 0xED: R.L |= (1 << 5); clock += 8; break;
+case 0xEE: { uint8_t val = Mem.read(R.get_HL()); Mem.write(R.get_HL(), val | (1 << 5)); clock += 15; } break;
+case 0xEF: R.A |= (1 << 5); clock += 8; break;
+case 0xF0: R.B |= (1 << 6); clock += 8; break;
+case 0xF1: R.C |= (1 << 6); clock += 8; break;
+case 0xF2: R.D |= (1 << 6); clock += 8; break;
+case 0xF3: R.E |= (1 << 6); clock += 8; break;
+case 0xF4: R.H |= (1 << 6); clock += 8; break;
+case 0xF5: R.L |= (1 << 6); clock += 8; break;
+case 0xF6: { uint8_t val = Mem.read(R.get_HL()); Mem.write(R.get_HL(), val | (1 << 6)); clock += 15; } break;
+case 0xF7: R.A |= (1 << 6); clock += 8; break;
+case 0xF8: R.B |= (1 << 7); clock += 8; break;
+case 0xF9: R.C |= (1 << 7); clock += 8; break;
+case 0xFA: R.D |= (1 << 7); clock += 8; break;
+case 0xFB: R.E |= (1 << 7); clock += 8; break;
+case 0xFC: R.H |= (1 << 7); clock += 8; break;
+case 0xFD: R.L |= (1 << 7); clock += 8; break;
+case 0xFE: { uint8_t val = Mem.read(R.get_HL()); Mem.write(R.get_HL(), val | (1 << 7)); clock += 15; } break;
+case 0xFF: R.A |= (1 << 7); clock += 8; break;
+case 0x00: R.B = rlc_op(R.B); clock += 8; break;
+case 0x01: R.C = rlc_op(R.C); clock += 8; break;
+case 0x02: R.D = rlc_op(R.D); clock += 8; break;
+case 0x03: R.E = rlc_op(R.E); clock += 8; break;
+case 0x04: R.H = rlc_op(R.H); clock += 8; break;
+case 0x05: R.L = rlc_op(R.L); clock += 8; break;
+case 0x06: { uint16_t hl = R.get_HL(); Mem.write(hl, rlc_op(Mem.read(hl))); clock += 15; } break;
+case 0x07: R.A = rlc_op(R.A); clock += 8; break;
+case 0x08: R.B = rrc_op(R.B); clock += 8; break;
+case 0x09: R.C = rrc_op(R.C); clock += 8; break;
+case 0x0A: R.D = rrc_op(R.D); clock += 8; break;
+case 0x0B: R.E = rrc_op(R.E); clock += 8; break;
+case 0x0C: R.H = rrc_op(R.H); clock += 8; break;
+case 0x0D: R.L = rrc_op(R.L); clock += 8; break;
+case 0x0E: { uint16_t hl = R.get_HL(); Mem.write(hl, rrc_op(Mem.read(hl))); clock += 15; } break;
+case 0x0F: R.A = rrc_op(R.A); clock += 8; break;
+case 0x10: R.B = rl_op(R.B); clock += 8; break;
+case 0x11: R.C = rl_op(R.C); clock += 8; break;
+case 0x12: R.D = rl_op(R.D); clock += 8; break;
+case 0x13: R.E = rl_op(R.E); clock += 8; break;
+case 0x14: R.H = rl_op(R.H); clock += 8; break;
+case 0x15: R.L = rl_op(R.L); clock += 8; break;
+case 0x16: { uint16_t hl = R.get_HL(); Mem.write(hl, rl_op(Mem.read(hl))); clock += 15; } break;
+case 0x17: R.A = rl_op(R.A); clock += 8; break;
+case 0x18: R.B = rr_op(R.B); clock += 8; break;
+case 0x19: R.C = rr_op(R.C); clock += 8; break;
+case 0x1A: R.D = rr_op(R.D); clock += 8; break;
+case 0x1B: R.E = rr_op(R.E); clock += 8; break;
+case 0x1C: R.H = rr_op(R.H); clock += 8; break;
+case 0x1D: R.L = rr_op(R.L); clock += 8; break;
+case 0x1E: { uint16_t hl = R.get_HL(); Mem.write(hl, rr_op(Mem.read(hl))); clock += 15; } break;
+case 0x1F: R.A = rr_op(R.A); clock += 8; break;
+case 0x20: R.B = sla_op(R.B); clock += 8; break;
+case 0x21: R.C = sla_op(R.C); clock += 8; break;
+case 0x22: R.D = sla_op(R.D); clock += 8; break;
+case 0x23: R.E = sla_op(R.E); clock += 8; break;
+case 0x24: R.H = sla_op(R.H); clock += 8; break;
+case 0x25: R.L = sla_op(R.L); clock += 8; break;
+case 0x26: { uint16_t hl = R.get_HL(); Mem.write(hl, sla_op(Mem.read(hl))); clock += 15; } break;
+case 0x27: R.A = sla_op(R.A); clock += 8; break;
+case 0x28: R.B = sra_op(R.B); clock += 8; break;
+case 0x29: R.C = sra_op(R.C); clock += 8; break;
+case 0x2A: R.D = sra_op(R.D); clock += 8; break;
+case 0x2B: R.E = sra_op(R.E); clock += 8; break;
+case 0x2C: R.H = sra_op(R.H); clock += 8; break;
+case 0x2D: R.L = sra_op(R.L); clock += 8; break;
+case 0x2E: { uint16_t hl = R.get_HL(); Mem.write(hl, sra_op(Mem.read(hl))); clock += 15; } break;
+case 0x2F: R.A = sra_op(R.A); clock += 8; break;
+case 0x30: R.B = swap_op(R.B); clock += 8; break;
+case 0x31: R.C = swap_op(R.C); clock += 8; break;
+case 0x32: R.D = swap_op(R.D); clock += 8; break;
+case 0x33: R.E = swap_op(R.E); clock += 8; break;
+case 0x34: R.H = swap_op(R.H); clock += 8; break;
+case 0x35: R.L = swap_op(R.L); clock += 8; break;
+case 0x36: { uint16_t hl = R.get_HL(); Mem.write(hl, swap_op(Mem.read(hl))); clock += 15; } break;
+case 0x37: R.A = swap_op(R.A); clock += 8; break;
+case 0x38: R.B = srl_op(R.B); clock += 8; break;
+case 0x39: R.C = srl_op(R.C); clock += 8; break;
+case 0x3A: R.D = srl_op(R.D); clock += 8; break;
+case 0x3B: R.E = srl_op(R.E); clock += 8; break;
+case 0x3C: R.H = srl_op(R.H); clock += 8; break;
+case 0x3D: R.L = srl_op(R.L); clock += 8; break;
+case 0x3E: { uint16_t hl = R.get_HL(); Mem.write(hl, srl_op(Mem.read(hl))); clock += 15; } break;
+case 0x3F: R.A = srl_op(R.A); clock += 8; break;
                
         }
     }
+    break;
+    case 0x00: 
+    clock += 4;
+    break;
+    case 0x76: 
+    running=false;
+    clock += 4;
+    break;
+    case 0x10: 
+    R.PC++; 
+    clock += 4;
+    break;
+    case 0xF3: 
+    // Plus tard : ime = false;
+    clock += 4;
+    break;
+
+case 0xFB: 
+    // Plus tard : ime = true;
+    clock += 4;
+    break;
+    default:
+    std::cerr << "\n========================================" << std::endl;
+    std::cerr << "❌ CRASH: Unknown or unimplemented opcode!" << std::endl;
+    std::cerr << "========================================" << std::endl;
+    std::cerr << "Faulty Opcode: 0x" << std::hex << std::uppercase << (int)opcode << std::endl;
+    std::cerr << "Crash Address: 0x" << std::setw(4) << std::setfill('0') << R.PC << std::endl;
+    std::cerr << "----------------------------------------" << std::endl;
+    std::cerr << "Registers State:" << std::endl;
+    std::cerr << "A: 0x" << (int)R.A << "  F: 0x" << (int)R.F << std::endl;
+    std::cerr << "B: 0x" << (int)R.B << "  C: 0x" << (int)R.C << std::endl;
+    std::cerr << "D: 0x" << (int)R.D << "  E: 0x" << (int)R.E << std::endl;
+    std::cerr << "H: 0x" << (int)R.H << "  L: 0x" << (int)R.L << std::endl;
+    std::cerr << "SP: 0x" << R.SP << std::endl;
+    std::cerr << "========================================" << std::endl;
+
+    running = false;
     break;
 }
 }

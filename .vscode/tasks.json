@@ -8,14 +8,18 @@
       "args": [
         "-std=c++17",
         "-g",
-        "EMU.cpp",
+        "${workspaceFolder}/*.cpp",
         "-o",
-        "EMU.exe"
+        "${workspaceFolder}/EMU.exe"
       ],
       "options": {
         "cwd": "${workspaceFolder}"
       },
-      "problemMatcher": "$gcc"
+      "problemMatcher": "$gcc",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
     }
   ]
 }

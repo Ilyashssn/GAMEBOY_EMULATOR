@@ -20,13 +20,13 @@ public:
 };
 
 class CPU {
+public:
+     bool get_running();
 private:
     Registers R;
     MMU& Mem;
     uint64_t clock;
     uint8_t opcode;
-
-   
     void adding(uint8_t v);
     void adcing(uint8_t v);
     void subing(uint8_t v);
@@ -37,14 +37,23 @@ private:
     void cp(uint8_t v);
     uint8_t inc8(uint8_t v);
     uint8_t dec8(uint8_t v);
-    
-   
     uint16_t fetch16();
     uint16_t add16(uint16_t hl, uint16_t rr);
     void bit_test(uint8_t b, uint8_t r);
+    uint8_t rlc_op(uint8_t val);
+    uint8_t rrc_op(uint8_t val);
+    uint8_t rl_op(uint8_t val);
+    uint8_t rr_op(uint8_t val);
+    uint8_t sra_op(uint8_t val);
+    uint8_t sla_op(uint8_t val);
+    uint8_t srl_op(uint8_t val);
+    uint8_t swap_op(uint8_t val);
+   
+
 
     uint16_t target_addr;
     uint8_t offset;
+    bool running;
 
 public:
     CPU(MMU& shared_mem);
