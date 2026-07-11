@@ -17,4 +17,5 @@ public:
     uint8_t read(uint16_t address) const;
     void write(uint16_t address, uint8_t value);
     bool load_rom(const std::string& filename);
+    void write_hardware(uint16_t address, uint8_t value);
 };

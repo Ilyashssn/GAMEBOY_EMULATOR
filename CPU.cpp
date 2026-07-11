@@ -191,6 +191,40 @@ uint8_t CPU::swap_op(uint8_t val) {
 bool CPU::get_running(){
    return running;
 }
+
+void CPU::update_timer(int count){
+   div_c+=count;
+   if(div_c >= 256){
+      div_c-=256;
+      Mem.write_hardware(0xFF04,Mem.read(0xFF04)+1);
+   }
+
+   uint8_t tac = Mem.read(0xFF07);
+   bool is_tima_enabled = (tac & 0x04) != 0;
+   if(is_tima_enabled){
+      tima_counter+=count;
+      int palier=1024;
+      switch (tac & 0x03) {
+            case 0x01: palier = 16;   break; 
+            case 0x02: palier = 64;   break; 
+            case 0x03: palier = 256;  break; 
+        }
+      if(tima_counter>=palier){
+         tima_counter-=palier;
+         uint8_t current_tima=Mem.read(0xFF05);
+         if(current_tima==0xFF){
+             Mem.write_hardware(0xFF05,Mem.read(0xFF06));
+         // TODO : request_interrupt(1)
+         }
+        
+      
+      else{
+         Mem.write_hardware(0xFF05,Mem.read(0xFF05)+1);
+      }
+      
+   }
+}
+}
 void CPU::step() {
     opcode = Mem.read(R.PC++);
     switch(opcode) {
@@ -1153,7 +1187,7 @@ case 0xFB:
     break;
     default:
     std::cerr << "\n========================================" << std::endl;
-    std::cerr << "❌ CRASH: Unknown or unimplemented opcode!" << std::endl;
+    std::cerr << " CRASH: Unknown or unimplemented opcode!" << std::endl;
     std::cerr << "========================================" << std::endl;
     std::cerr << "Faulty Opcode: 0x" << std::hex << std::uppercase << (int)opcode << std::endl;
     std::cerr << "Crash Address: 0x" << std::setw(4) << std::setfill('0') << R.PC << std::endl;

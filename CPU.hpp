@@ -48,12 +48,14 @@ private:
     uint8_t sla_op(uint8_t val);
     uint8_t srl_op(uint8_t val);
     uint8_t swap_op(uint8_t val);
-   
+    void update_timer(int c);
 
 
     uint16_t target_addr;
     uint8_t offset;
     bool running;
+    int div_c=0;
+    int tima_counter=0;
 
 public:
     CPU(MMU& shared_mem);
