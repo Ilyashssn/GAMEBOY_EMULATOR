@@ -16,6 +16,8 @@ void CPU::reset() {
     R.PC = 0x0100; 
     clock = 0;
     running=true;
+    ime=false;
+    pending_ime_enable=false;
 }
 
 void CPU::adding(uint8_t v) {
@@ -214,7 +216,7 @@ void CPU::update_timer(int count){
          uint8_t current_tima=Mem.read(0xFF05);
          if(current_tima==0xFF){
              Mem.write_hardware(0xFF05,Mem.read(0xFF06));
-         // TODO : request_interrupt(1)
+            request_interrupt(INTERRUPT_TIMER);
          }
         
       
@@ -225,7 +227,80 @@ void CPU::update_timer(int count){
    }
 }
 }
+
+void CPU::request_interrupt(InterruptType type) {
+   
+    uint8_t if_reg = Mem.read(0xFF0F);
+    if_reg |= (1 << type);
+    Mem.write(0xFF0F, if_reg);
+
+}
+
+void CPU::handle_interrupts() {
+    
+    uint8_t ie = Mem.read(0xFFFF);
+    uint8_t irf = Mem.read(0xFF0F);
+    
+    
+    uint8_t pending = ie & irf & 0x1F;
+
+    
+    if (pending == 0) {
+        return;
+    }
+
+    
+    if (halted) {
+        halted = false;
+    }
+
+   
+    if (!ime) {
+        return;
+    }
+    
+    clock += 20;
+
+    
+    ime = false;
+
+    for (int i = 0; i < 5; i++) {
+        if (pending & (1 << i)) {
+            
+            irf &= ~(1 << i);
+            Mem.write(0xFF0F, irf);
+            R.SP--;
+            Mem.write(R.SP, (R.PC >> 8) & 0xFF);
+            R.SP--;
+            Mem.write(R.SP, R.PC & 0xFF);
+
+            
+            switch (i) {
+                case 0: R.PC = 0x0040; break; // V-Blank
+                case 1: R.PC = 0x0048; break; // LCD STAT
+                case 2: R.PC = 0x0050; break; // Timer
+                case 3: R.PC = 0x0058; break; // Serial
+                case 4: R.PC = 0x0060; break; // joypad
+            }
+
+            
+            break;
+        }
+    }
+}
 void CPU::step() {
+   if(pending_ime_enable){
+      ime=true;
+      pending_ime_enable=false;
+   }
+
+
+   handle_interrupts();
+
+   if (halted) {
+    clock += 4; 
+   return;
+   }
     opcode = Mem.read(R.PC++);
     switch(opcode) {
                     case 0x7F:
@@ -1169,7 +1244,16 @@ case 0x3F: R.A = srl_op(R.A); clock += 8; break;
     clock += 4;
     break;
     case 0x76: 
-    running=false;
+    if (!ime) {
+        uint8_t pending = Mem.read(0xFFFF) & Mem.read(0xFF0F) & 0x1F;
+        if (pending != 0) {
+            R.PC--; 
+        } else {
+            halted = true;
+        }
+    } else {
+        halted = true;
+    }
     clock += 4;
     break;
     case 0x10: 
@@ -1177,14 +1261,25 @@ case 0x3F: R.A = srl_op(R.A); clock += 8; break;
     clock += 4;
     break;
     case 0xF3: 
-    // Plus tard : ime = false;
+    ime=false;
+    pending_ime_enable=false;
     clock += 4;
     break;
 
 case 0xFB: 
-    // Plus tard : ime = true;
+    pending_ime_enable=true;
     clock += 4;
     break;
+
+case 0xD9:
+   ime=true;
+   uint16_t low = Mem.read(R.SP++);
+    uint16_t high = Mem.read(R.SP++);
+    R.PC = (high << 8) | low;
+    clock += 16;
+    break;
+
+
     default:
     std::cerr << "\n========================================" << std::endl;
     std::cerr << " CRASH: Unknown or unimplemented opcode!" << std::endl;

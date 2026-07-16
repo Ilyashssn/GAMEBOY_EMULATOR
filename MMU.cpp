@@ -21,6 +21,9 @@ uint8_t MMU::read(uint16_t address) const {
         return oam[address - 0xFE00];
     }
     if (address >= 0xFF00 && address <= 0xFF7F) {
+        if(address==0xFF0F){
+            return io[0xFF0F-0x0FF00] | 0xE0;
+        }
         return io[address - 0xFF00];
     }
     if (address >= 0xFF80 && address <= 0xFFFE) {
