@@ -23,13 +23,7 @@ class CPU {
 public:
      bool get_running();
 private:
-    enum InterruptType {
-    INTERRUPT_VBLANK  = 0, // Bit 0 (Vecteur 0x0040)
-    INTERRUPT_LCDSTAT = 1, // Bit 1 (Vecteur 0x0048)
-    INTERRUPT_TIMER   = 2, // Bit 2 (Vecteur 0x0050)
-    INTERRUPT_SERIAL  = 3, // Bit 3 (Vecteur 0x0058)
-    INTERRUPT_JOYPAD  = 4  // Bit 4 (Vecteur 0x0060)
-};
+
     Registers R;
     MMU& Mem;
     uint64_t clock;
@@ -55,9 +49,7 @@ private:
     uint8_t sla_op(uint8_t val);
     uint8_t srl_op(uint8_t val);
     uint8_t swap_op(uint8_t val);
-    void update_timer(int c);
-    void request_interrupt(InterruptType type);
-    void handle_interrupts();
+
 
     uint16_t target_addr;
     uint8_t offset;
@@ -69,7 +61,18 @@ private:
     bool halted;
 
 public:
+   
     CPU(MMU& shared_mem);
+    enum InterruptType {
+    INTERRUPT_VBLANK  = 0, // Bit 0 (Vecteur 0x0040)
+    INTERRUPT_LCDSTAT = 1, // Bit 1 (Vecteur 0x0048)
+    INTERRUPT_TIMER   = 2, // Bit 2 (Vecteur 0x0050)
+    INTERRUPT_SERIAL  = 3, // Bit 3 (Vecteur 0x0058)
+    INTERRUPT_JOYPAD  = 4  // Bit 4 (Vecteur 0x0060)
+};
+    void update_timer(int c);
+    void request_interrupt(InterruptType type);
+    void handle_interrupts();
     void reset();
     void step(); 
 };
