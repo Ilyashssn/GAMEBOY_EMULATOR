@@ -22,6 +22,7 @@ public:
 class CPU {
 public:
      bool get_running();
+     uint64_t get_clock();
 private:
 
     Registers R;

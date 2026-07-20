@@ -20,6 +20,45 @@
         "kind": "build",
         "isDefault": true
       }
+    },
+    {
+      "label": "Build C++ (SDL - MinGW)",
+      "type": "shell",
+      "command": "g++",
+      "args": [
+        "-std=c++17",
+        "-g",
+        "-I",
+        "C:/SDL2/include",
+        "${workspaceFolder}/*.cpp",
+        "-L",
+        "C:/SDL2/lib",
+        "-lmingw32",
+        "-lSDL2main",
+        "-lSDL2",
+        "-o",
+        "${workspaceFolder}/EMU_SDL.exe"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": "$gcc",
+      "group": "build"
+    },
+    {
+      "label": "Build C++ (SDL - MSYS2/pkg-config)",
+      "type": "shell",
+      "command": "sh",
+      "args": [
+        "-lc",
+        "g++ -std=c++17 -g ${workspaceFolder}/*.cpp $(pkg-config --cflags --libs sdl2) -o ${workspaceFolder}/EMU_SDL.exe"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": "$gcc",
+      "group": "build"
     }
   ]
 }
+
